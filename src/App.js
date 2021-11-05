@@ -11,6 +11,7 @@ const App = () => {
     player: '',
   });
   const [startGame, setStartGame] = useState(false);
+  console.log('cards', cards);
 
   const cardValues = new Map([
     ['ACE', 4],
@@ -56,7 +57,7 @@ const App = () => {
         }
         deck.splice(index, 1);
       }
-      setPlayer[j] = selectFourFaces(setPlayer[j], j);
+      setPlayer[j] = sortCards(selectFourFaces(setPlayer[j], j));
     }
     setCards(setPlayer);
   };
@@ -98,6 +99,24 @@ const App = () => {
   useEffect(() => {
     createDeckAndDraw();
   }, []);
+
+  const sortCards = (setOfCards) => {
+    const sortCards = {
+      SPADES: [],
+      HEARTS: [],
+      DIAMONDS: [],
+      CLUBS: [],
+    };
+
+    setOfCards.map((card) => sortCards[card.suit].push(card));
+    const sortedCards = [
+      ...sortCards['SPADES'],
+      ...sortCards['HEARTS'],
+      ...sortCards['DIAMONDS'],
+      ...sortCards['CLUBS'],
+    ];
+    return sortedCards;
+  };
 
   return startGame ? (
     <div style={{ background: 'green', height: '100vh' }}>
