@@ -11,7 +11,7 @@ const App = () => {
     player: '',
   });
   const [startGame, setStartGame] = useState(false);
-  console.log('cards', cards);
+  const [pointsBySuit, setPointBySuit] = useState({});
 
   const cardValues = new Map([
     ['ACE', 4],
@@ -20,7 +20,7 @@ const App = () => {
     ['JACK', 1],
   ]);
 
-  const plyersName = new Map([
+  const playersName = new Map([
     [1, 'NORTH'],
     [2, 'WEST'],
     [3, 'EAST'],
@@ -57,9 +57,10 @@ const App = () => {
         }
         deck.splice(index, 1);
       }
-      setPlayer[j] = sortCards(selectFourFaces(setPlayer[j], j));
+      setPlayer[j] = sortCardsBySuit(selectFourFaces(setPlayer[j], j), j);
     }
     setCards(setPlayer);
+    setStartGame(true);
   };
 
   const findWinner = () => {
@@ -68,12 +69,14 @@ const App = () => {
     const index = values.indexOf(maxSetValue) + 1;
     setWinner({
       showWinner: true,
-      player: `${plyersName.get(index)} has won the game !!`,
+      player: `${playersName.get(index)} has won the game !!`,
       north: values[0],
       west: values[1],
       east: values[2],
       south: values[3],
     });
+    console.log('Console points by Suit', pointsBySuit);
+
   };
 
   const selectFourFaces = (card_set, player) => {
@@ -96,11 +99,11 @@ const App = () => {
     return cardSet;
   };
 
-  useEffect(() => {
-    createDeckAndDraw();
-  }, []);
+  // useEffect(() => {
+  //   createDeckAndDraw();
+  // }, []);
 
-  const sortCards = (setOfCards) => {
+  const sortCardsBySuit = (setOfCards, player) => {
     const sortCards = {
       SPADES: [],
       HEARTS: [],
@@ -115,12 +118,35 @@ const App = () => {
       ...sortCards['DIAMONDS'],
       ...sortCards['CLUBS'],
     ];
+    calculatePointBySuit(sortCards, player);
     return sortedCards;
+  };
+
+  // TO calculate point by suit. Not displayed on UI. Can be viewed in console.log
+  const calculatePointBySuit = (sortCards, player) => {
+    let total = {};
+    Object.keys(sortCards).map((suit) => {
+      let arr = sortCards[suit].map((card) =>
+        cardValues.get(card?.value) === undefined
+          ? 0
+          : cardValues.get(card?.value)
+      );
+      total[suit] = arr.reduce((accumulator, a) => {
+        return accumulator + a;
+      }, 0);
+
+      setPointBySuit((pointsBySuit) => ({
+        ...pointsBySuit,
+        [playersName.get(player)]: total,
+      }));
+      return total;
+    });
   };
 
   return startGame ? (
     <div style={{ background: 'green', height: '100vh' }}>
       {/* Player NORTH */}
+
       <div>
         <h4 className="heading">NORTH</h4>
         <Row>
@@ -240,7 +266,7 @@ const App = () => {
       style={{ background: 'green', height: '100vh' }}
       className="style_button"
     >
-      <Button onClick={() => setStartGame(true)}>Start Game</Button>
+      <Button onClick={createDeckAndDraw}>Start Game</Button>
     </div>
   );
 };
