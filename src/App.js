@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Col, Row, Button } from 'antd';
+import { Col, Row, Button, Modal } from 'antd';
 import styles from './App.css';
 import axios from 'axios';
+import Details from './details';
 
 const App = () => {
   const [cards, setCards] = useState(); // Containing cards for 4 players
@@ -11,7 +12,8 @@ const App = () => {
     player: '',
   });
   const [startGame, setStartGame] = useState(false);
-  const [pointsBySuit, setPointBySuit] = useState({});
+  const [pointsBySuit, setPointBySuit] = useState([]);
+  const [showDetails, setShowDetails] = useState(false);
 
   const cardValues = new Map([
     ['ACE', 4],
@@ -27,9 +29,32 @@ const App = () => {
     [4, 'SOUTH'],
   ]);
 
+  const cardOrder = [
+    'ACE',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    'JACK',
+    'QUEEN',
+    'KING',
+  ];
+
   const api = axios.create({
     baseURL: 'https://deckofcardsapi.com/api/deck/',
   });
+
+  const sortCardsByValues = (cards) => {
+    const temp = cardOrder?.map((value) =>
+      cards?.find((card) => card?.value === value)
+    );
+    return temp?.filter((item) => item); //to remove undefined from array
+  };
 
   const createDeckAndDraw = async () => {
     const { data } = await api.get('new/shuffle/', {
@@ -60,6 +85,7 @@ const App = () => {
       setPlayer[j] = sortCardsBySuit(selectFourFaces(setPlayer[j], j), j);
     }
     setCards(setPlayer);
+    setWinner({});
     setStartGame(true);
   };
 
@@ -76,7 +102,6 @@ const App = () => {
       south: values[3],
     });
     console.log('Console points by Suit', pointsBySuit);
-
   };
 
   const selectFourFaces = (card_set, player) => {
@@ -113,15 +138,24 @@ const App = () => {
 
     setOfCards.map((card) => sortCards[card.suit].push(card));
     const sortedCards = [
-      ...sortCards['SPADES'],
-      ...sortCards['HEARTS'],
-      ...sortCards['DIAMONDS'],
-      ...sortCards['CLUBS'],
+      ...sortCardsByValues(sortCards['SPADES']),
+      ...sortCardsByValues(sortCards['HEARTS']),
+      ...sortCardsByValues(sortCards['DIAMONDS']),
+      ...sortCardsByValues(sortCards['CLUBS']),
     ];
+    // sortCardsByValues(sortedCards);
+
     calculatePointBySuit(sortCards, player);
     return sortedCards;
   };
 
+  const handleOk = () => {
+    setShowDetails(false);
+  };
+
+  const handleCancel = () => {
+    setShowDetails(false);
+  };
   // TO calculate point by suit. Not displayed on UI. Can be viewed in console.log
   const calculatePointBySuit = (sortCards, player) => {
     let total = {};
@@ -134,140 +168,169 @@ const App = () => {
       total[suit] = arr.reduce((accumulator, a) => {
         return accumulator + a;
       }, 0);
-
-      setPointBySuit((pointsBySuit) => ({
-        ...pointsBySuit,
-        [playersName.get(player)]: total,
-      }));
-      return total;
     });
+    setPointBySuit((pointsBySuit) => [
+      ...pointsBySuit,
+      {
+        PLAYER: playersName.get(player),
+        ...total,
+      },
+    ]);
+    return total;
   };
 
-  return startGame ? (
-    <div style={{ background: 'green', height: '100vh' }}>
-      {/* Player NORTH */}
-
-      <div>
-        <h4 className="heading">NORTH</h4>
-        <Row>
-          <Col span={5}></Col>
-          {cards[1].map((card) => {
-            return (
-              <Col span={1}>
-                <img
-                  src={card.image}
-                  alt={card.code}
-                  height={'100px'}
-                  width={'80px'}
-                  className={card.highlight ? 'selected_card' : ''}
-                />
-              </Col>
-            );
-          })}
-          <Col span={6}></Col>
-        </Row>
-      </div>
-      <Row>
-        {/* Player WEST */}
-
-        <Col span={4}>
-          <h4 className="heading">WEST</h4>
-          <Row
-            style={{
-              display: 'grid',
-              height: '500px',
-              justifyContent: 'center',
-            }}
-          >
-            {cards[2].map((card) => {
-              return (
-                <Col span={1}>
-                  <img
-                    src={card.image}
-                    alt={card.code}
-                    height={'100px'}
-                    width={'80px'}
-                    className={card.highlight ? 'selected_card' : ''}
-                  />
-                </Col>
-              );
-            })}
-          </Row>
-        </Col>
-        <Col span={16}>
-          <div className="style_button">
-            {winner.showWinner ? (
-              <div>
-                <h2 className="heading">{winner.player}</h2>
-                <h2 className="heading">SCORES : </h2>
-                <h4 className="heading">NORTH: {winner.north}</h4>
-                <h4 className="heading">WEST: {winner.west}</h4>
-                <h4 className="heading">EAST: {winner.east}</h4>
-                <h4 className="heading"> SOUTH: {winner.south}</h4>
-              </div>
-            ) : (
-              <Button onClick={findWinner}>Get Result</Button>
-            )}
+  return (
+    <>
+      {startGame ? (
+        <div style={{ background: 'green', height: '100vh' }}>
+          {/* Player NORTH */}
+          <div>
+            <h4 className="heading">NORTH</h4>
+            <Row>
+              <Col span={5}></Col>
+              {cards[1].map((card) => {
+                return (
+                  <Col span={1}>
+                    <img
+                      src={card.image}
+                      alt={card.code}
+                      height={'100px'}
+                      width={'80px'}
+                      className={card.highlight ? 'selected_card' : ''}
+                    />
+                  </Col>
+                );
+              })}
+              <Col span={6}></Col>
+            </Row>
           </div>
-        </Col>
-        {/* Player EAST*/}
+          <Row>
+            {/* Player WEST */}
 
-        <Col span={4}>
-          <h4 className="heading">EAST</h4>
+            <Col span={4}>
+              <h4 className="heading">WEST</h4>
+              <Row
+                style={{
+                  display: 'grid',
+                  height: '500px',
+                  justifyContent: 'center',
+                }}
+              >
+                {cards[2].map((card) => {
+                  return (
+                    <Col span={1}>
+                      <img
+                        src={card.image}
+                        alt={card.code}
+                        height={'100px'}
+                        width={'80px'}
+                        className={card.highlight ? 'selected_card' : ''}
+                      />
+                    </Col>
+                  );
+                })}
+              </Row>
+            </Col>
+            <Col span={16}>
+              <div className="style_button">
+                {winner.showWinner ? (
+                  <div>
+                    <h2 className="heading">{winner.player}</h2>
+                    <h2 className="heading">SCORES : </h2>
+                    <h4 className="heading">NORTH: {winner.north}</h4>
+                    <h4 className="heading">WEST: {winner.west}</h4>
+                    <h4 className="heading">EAST: {winner.east}</h4>
+                    <h4 className="heading"> SOUTH: {winner.south}</h4>
+                    <br />
+                    <div className="style_button">
+                      <Button
+                        onClick={() => {
+                          setPointBySuit([]);
+                          setStartGame(false);
+                        }}
+                      >
+                        RESTART
+                      </Button>
+                      <Button onClick={() => setShowDetails(true)}>
+                        DETAILS
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button onClick={findWinner}>Get Result</Button>
+                )}
+              </div>
+            </Col>
+            {/* Player EAST*/}
 
-          <Row
-            style={{
-              display: 'grid',
-              height: '500px',
-              justifyContent: 'center',
-            }}
-          >
-            {cards[3].map((card) => {
-              return (
-                <Col span={1}>
-                  <img
-                    src={card.image}
-                    alt={card.code}
-                    height={'100px'}
-                    width={'80px'}
-                    className={card.highlight ? 'selected_card' : ''}
-                  />
-                </Col>
-              );
-            })}
+            <Col span={4}>
+              <h4 className="heading">EAST</h4>
+
+              <Row
+                style={{
+                  display: 'grid',
+                  height: '500px',
+                  justifyContent: 'center',
+                }}
+              >
+                {cards[3].map((card) => {
+                  return (
+                    <Col span={1}>
+                      <img
+                        src={card.image}
+                        alt={card.code}
+                        height={'100px'}
+                        width={'80px'}
+                        className={card.highlight ? 'selected_card' : ''}
+                      />
+                    </Col>
+                  );
+                })}
+              </Row>
+            </Col>
           </Row>
-        </Col>
-      </Row>
 
-      {/* Player SOUTH*/}
-      <div>
-        <h4 className="heading">SOUTH</h4>
-        <Row>
-          <Col span={5}></Col>
-          {cards[4].map((card) => {
-            return (
-              <Col span={1}>
-                <img
-                  src={card.image}
-                  alt={card.code}
-                  height={'100px'}
-                  width={'80px'}
-                  className={card.highlight ? 'selected_card' : ''}
-                />
-              </Col>
-            );
-          })}
-          <Col span={6}></Col>
-        </Row>
-      </div>
-    </div>
-  ) : (
-    <div
-      style={{ background: 'green', height: '100vh' }}
-      className="style_button"
-    >
-      <Button onClick={createDeckAndDraw}>Start Game</Button>
-    </div>
+          {/* Player SOUTH*/}
+          <div>
+            <h4 className="heading">SOUTH</h4>
+            <Row>
+              <Col span={5}></Col>
+              {cards[4].map((card) => {
+                return (
+                  <Col span={1}>
+                    <img
+                      src={card.image}
+                      alt={card.code}
+                      height={'100px'}
+                      width={'80px'}
+                      className={card.highlight ? 'selected_card' : ''}
+                    />
+                  </Col>
+                );
+              })}
+              <Col span={6}></Col>
+            </Row>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{ background: 'green', height: '100vh' }}
+          className="style_button"
+        >
+          <Button onClick={createDeckAndDraw}>Start Game</Button>
+        </div>
+      )}
+
+      <Modal
+        title="Score Details"
+        visible={showDetails}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        width="450px"
+      >
+        <Details data={pointsBySuit} />
+      </Modal>
+    </>
   );
 };
 
